@@ -7,11 +7,14 @@
 #include "passwords.h"
 
 ESP8266WebServer server ( 81 );
+bool out2state = false;
+bool button2state = false;
 
 void switchOutput(int a, int value) {
   switch (value) {
     case 0:
     case 1:
+      digitalWrite(D1, value);
       switch (a) {
         case 1: digitalWrite(D3, value);
             server.send (200, "text/html", "OK <a href='/1/on'>sw ON</a> <a href='/1/off'>sw OFF</a>");
@@ -34,6 +37,8 @@ void switchOutput(int a, int value) {
 void setup ( void ) {
   pinMode (D3, OUTPUT);
   pinMode (D4, OUTPUT);
+  pinMode (D2, INPUT_PULLUP);
+  pinMode (D1, OUTPUT);
   
 	Serial.begin ( 115200 );
 	WiFi.begin ( ssid, password );
@@ -55,8 +60,8 @@ void setup ( void ) {
 		Serial.println ( "MDNS responder started" );
 	}
  
-  server.on ("/2/off", []() {switchOutput(2,0);});
-  server.on ("/2/on", []() {switchOutput(2,1);});
+  server.on ("/2/off", []() {switchOutput(2,0); out2state = false; });
+  server.on ("/2/on", []() {switchOutput(2,1);  out2state = true; });
   server.on ("/1/off", []() {switchOutput(1,0);});
   server.on ("/1/on", []() {switchOutput(1,1);});
   
@@ -66,4 +71,16 @@ void setup ( void ) {
 
 void loop ( void ) {
 	server.handleClient();
+  bool button2current = digitalRead(D2);
+  if (button2state) {
+     if (!button2current) {
+        switchOutput(2,0); out2state = false; 
+        button2state = button2current;
+     }
+  } else {
+    if (button2current) {
+        switchOutput(2,1); out2state = true; 
+        button2state = button2current;
+     }
+  }
 }
